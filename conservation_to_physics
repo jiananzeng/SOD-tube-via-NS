@@ -1,0 +1,10 @@
+function [rho,u,T,p,E]=conservation_to_physics(U)
+global gamma cv
+rho = U(1,:);
+u = U(2,:)./U(1,:);
+T = (U(3,:)./U(1,:)-0.5*u.^2)/cv/2/gamma;
+p = (gamma-1)*(U(3,:)-0.5*U(2,:).^2./U(1,:));
+E = p/(gamma-1) + 0.5*rho.*u.^2;
+end
+
+
