@@ -1,0 +1,71 @@
+clc,clear;
+%% spatial grid
+global cv gamma cp Ma Re Pr Nx dx
+Nx=1601;
+Ttot=0.2;
+x=linspace(-0.5,0.5,Nx);
+dx=x(2)-x(1);
+dt=dx*0.1;
+Nt=Ttot/dt;
+
+
+%% 
+
+Pr=2/3;
+Re=5000;
+Ma=2;
+gamma=1.4;
+cv=1/(gamma*(gamma-1)*Ma*Ma);
+cp=gamma*cv;
+
+
+U=zeros(3,Nx);
+h=zeros(3,Nx-5);
+%% initial condition for the SOD shock tube
+x1=x<=0;
+x2=x>0;
+rho0 =   1*x1 + 0.125*x2;
+u0   = 0.0*x1 +   0.0*x2;
+p0   =   1*x1 +   0.1*x2;
+
+E0=p0./(gamma-1)./rho0+0.5*u0.^2;
+a0=sqrt(gamma*p0./rho0);
+
+% physics to conservation
+U(1,:) = rho0;
+U(2,:) = rho0.*u0;
+U(3,:) = p0/(gamma-1) + 0.5*rho0.*u0.^2;
+
+U1=U;U2=U;
+
+%% iteration
+
+for t=1:Nt
+
+    %% RK1
+    % conservation to physics
+    [rho,u,T,p,E]=conservation_to_physics(U);
+    
+    figure(1)
+    p1=plot(x,rho,'b',x,u,'r',x,p,'black',x,T,'m:');
+    set(p1,'linewidth', 3);
+    grid on;
+    legend('Density','Velocity','Pressure');
+    title(['ENO + 3order RK scheme:  t = ' num2str(t*dt)]);
+    pause(0.1);
+    
+    % space discreation  
+    dF = diffENO(p, rho, T, u, E, U, 1); % last term represent viscosity term / vis=1
+    U1(:,4:Nx-3) = U(:,4:Nx-3) - dt*dF;
+    
+    %% RK2
+    [rho,u,T,p,E]=conservation_to_physics(U1);
+    dF = diffENO(p, rho, T, u, E, U1, 1);
+    U2(:,4:Nx-3) = 0.75*U(:,4:Nx-3) + 0.25*U1(:,4:Nx-3) - 0.25*dt*dF;
+
+    %% RK3
+    [rho,u,T,p,E]=conservation_to_physics(U2);
+    dF = diffENO(p, rho, T, u, E, U2, 1);
+    U(:,4:Nx-3) = 1/3*U(:,4:Nx-3) + 2/3*U2(:,4:Nx-3) - 2/3*dt*dF;
+
+end
